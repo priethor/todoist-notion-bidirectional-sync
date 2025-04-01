@@ -1,0 +1,24 @@
+{
+  "event_name": "item:added",
+  "user_id": 12345678,
+  "event_data": {
+    "id": "2995104339",
+    "checked": false,
+    "content": "New task from Todoist",
+    "description": "Task description with details",
+    "due": {
+      "date": "2025-01-10",
+      "is_recurring": false,
+      "string": "Jan 10",
+      "timezone": "Europe/Madrid"
+    },
+    "priority": 3,
+    "project_id": "2203306141",
+    "section_id": null,
+    "parent_id": null,
+    "user_id": 12345678,
+    "labels": ["work", "important"],
+    "added_by_uid": 12345678
+  },
+  "version": "9"
+}

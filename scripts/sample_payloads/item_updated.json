@@ -1,0 +1,24 @@
+{
+  "event_name": "item:updated",
+  "user_id": 12345678,
+  "event_data": {
+    "id": "2995104339",
+    "checked": false,
+    "content": "Updated task from Todoist",
+    "description": "Updated task description with more details",
+    "due": {
+      "date": "2025-01-15",
+      "is_recurring": false,
+      "string": "Jan 15",
+      "timezone": "Europe/Madrid"
+    },
+    "priority": 4,
+    "project_id": "2203306141",
+    "section_id": null,
+    "parent_id": null,
+    "user_id": 12345678,
+    "labels": ["work", "important", "urgent"],
+    "added_by_uid": 12345678
+  },
+  "version": "9"
+}
