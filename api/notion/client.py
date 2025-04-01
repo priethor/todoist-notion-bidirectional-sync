@@ -11,8 +11,6 @@ try:
 except ImportError:
     NOTION_SDK_AVAILABLE = False
 
-from api.mapping import task_mapping
-
 logger = logging.getLogger(__name__)
 
 # Get Notion API credentials from environment variables
@@ -70,8 +68,9 @@ class NotionTaskClient:
         
         todoist_id = task_data.get("id")
         
-        # Check if task already exists in Notion
-        existing_notion_id = task_mapping.get_notion_id(todoist_id)
+        # Check if task already exists in Notion by querying for the Todoist ID
+        # TODO: Implement lookup in Notion database by Todoist ID
+        existing_notion_id = self._find_page_by_todoist_id(todoist_id)
         if existing_notion_id:
             logger.info(f"Task already exists in Notion with ID: {existing_notion_id}")
             return existing_notion_id
@@ -81,16 +80,28 @@ class NotionTaskClient:
         
         # Placeholder for actual Notion API call
         # When implemented, this would create a new page in the Notion database
-        # and return the page ID
+        # with a property containing the Todoist ID, and return the page ID
         
         # For now, we'll simulate a successful creation
         # This should be replaced with the actual implementation
         mock_notion_id = f"notion_page_{todoist_id}"
         
-        # Store the mapping
-        task_mapping.add_mapping(todoist_id, mock_notion_id)
-        
         return mock_notion_id
+        
+    def _find_page_by_todoist_id(self, todoist_id: str) -> Optional[str]:
+        """
+        Find a Notion page by its Todoist ID property.
+        
+        Args:
+            todoist_id: The Todoist task ID to look for
+            
+        Returns:
+            The Notion page ID if found, None otherwise
+        """
+        # TODO: Implement database query to find page with matching Todoist ID property
+        # This is a placeholder that will be replaced with actual Notion API call
+        logger.debug(f"Would search for page with Todoist ID: {todoist_id}")
+        return None
     
     def update_task(self, task_data: Dict[str, Any]) -> bool:
         """
@@ -107,10 +118,10 @@ class NotionTaskClient:
             return False
         
         todoist_id = task_data.get("id")
-        notion_id = task_mapping.get_notion_id(todoist_id)
+        notion_id = self._find_page_by_todoist_id(todoist_id)
         
         if not notion_id:
-            logger.warning(f"No mapping found for Todoist task {todoist_id}, creating new task instead")
+            logger.warning(f"No Notion page found for Todoist task {todoist_id}, creating new task instead")
             # Create the task if it doesn't exist
             new_notion_id = self.create_task(task_data)
             return bool(new_notion_id)
@@ -138,10 +149,10 @@ class NotionTaskClient:
             return False
         
         todoist_id = task_data.get("id")
-        notion_id = task_mapping.get_notion_id(todoist_id)
+        notion_id = self._find_page_by_todoist_id(todoist_id)
         
         if not notion_id:
-            logger.warning(f"No mapping found for Todoist task {todoist_id}, creating new task instead")
+            logger.warning(f"No Notion page found for Todoist task {todoist_id}, creating new task instead")
             # Create the task if it doesn't exist and mark it as completed
             new_notion_id = self.create_task(task_data)
             if not new_notion_id:
@@ -174,10 +185,10 @@ class NotionTaskClient:
             return False
         
         todoist_id = task_data.get("id")
-        notion_id = task_mapping.get_notion_id(todoist_id)
+        notion_id = self._find_page_by_todoist_id(todoist_id)
         
         if not notion_id:
-            logger.warning(f"No mapping found for Todoist task {todoist_id}, creating new task instead")
+            logger.warning(f"No Notion page found for Todoist task {todoist_id}, creating new task instead")
             # Create the task if it doesn't exist
             new_notion_id = self.create_task(task_data)
             return bool(new_notion_id)
@@ -205,20 +216,19 @@ class NotionTaskClient:
             return False
         
         todoist_id = task_data.get("id")
-        notion_id = task_mapping.get_notion_id(todoist_id)
+        notion_id = self._find_page_by_todoist_id(todoist_id)
         
         if not notion_id:
-            logger.warning(f"No mapping found for Todoist task {todoist_id}, nothing to delete")
+            logger.warning(f"No Notion page found for Todoist task {todoist_id}, nothing to delete")
             return True  # No error, the task doesn't exist in Notion anyway
             
         # TODO: Implement task deletion in Notion
-        logger.info(f"Would delete task in Notion: {task_data.get('content', 'Unknown')} (ID: {notion_id})")
+        logger.info(f"Would mark task as deleted in Notion: {task_data.get('content', 'Unknown')} (ID: {notion_id})")
         
         # Placeholder for actual Notion API call
-        # When implemented, this would archive or delete the Notion page
-        
-        # Remove the mapping
-        task_mapping.remove_mapping_by_todoist(todoist_id)
+        # When implemented, this would update the Notion page to mark it as deleted
+        # by setting the 'Deleted' property to True, 'Deleted At' to current time
+        # and 'Deleted By' to 'Todoist'
         
         return True
 

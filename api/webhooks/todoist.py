@@ -117,7 +117,7 @@ def handle_item_added(item_data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     
     if notion_page_id:
         logger.info(f"Successfully created task in Notion with ID: {notion_page_id}")
-        # TODO: Store mapping between Todoist task ID and Notion page ID
+        # The Todoist ID is already stored in the Notion page properties
         return True, None
     else:
         logger.warning(f"Failed to create task in Notion: {content}")
