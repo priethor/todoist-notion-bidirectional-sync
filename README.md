@@ -4,8 +4,10 @@ A Python application that provides bidirectional synchronization between Todoist
 
 ## Features
 
-- Receive webhooks from Todoist when tasks are created, updated, or completed
-- (Coming soon) Sync tasks from Todoist to Notion
+- Receive webhooks from Todoist when tasks are created, updated, completed, or deleted
+- Process task changes and sync them to Notion (placeholder implementation)
+- Maintain mappings between Todoist tasks and Notion pages
+- (Coming soon) Full Notion database integration with two-way sync
 - (Coming soon) Sync entries from Notion to Todoist
 - (Coming soon) Bidirectional conflict resolution
 
@@ -72,6 +74,10 @@ This will send a simulated webhook to `http://localhost:5001/webhook/todoist` by
 ```
 ├── api/
 │   ├── __init__.py
+│   ├── mapping.py           # Utilities for mapping between Todoist and Notion IDs
+│   ├── notion/
+│   │   ├── __init__.py
+│   │   └── client.py        # Notion API client for task synchronization
 │   └── webhooks/
 │       ├── __init__.py      # Registers all webhook blueprints
 │       └── todoist.py       # Todoist webhook handler and routes
@@ -80,6 +86,7 @@ This will send a simulated webhook to `http://localhost:5001/webhook/todoist` by
 │   └── test_webhook.py      # Script to test webhook locally
 ├── app.py                   # Main Flask application
 ├── requirements.txt         # Python dependencies
+├── task_mapping.json        # Stores mappings between Todoist and Notion (created at runtime)
 └── .env.template            # Environment variables template
 ```
 
