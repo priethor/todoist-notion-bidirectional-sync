@@ -11,13 +11,19 @@ This document outlines the design principles and implementation strategy for the
 3. **Robust Deletion Tracking**: Deleted tasks are soft-deleted rather than purged
 4. **Simplicity**: Focus on core functionality with minimal complexity
 
-## Task Identity Mapping
+## Identity Mapping Strategy
 
-Rather than maintaining a separate mapping file, we store Todoist IDs directly in the Notion database:
+Rather than maintaining a separate mapping file, we store Todoist IDs directly in the Notion databases:
 
-- Each Notion page (task) contains a "Todoist ID" property
+**Task Mapping:**
+- Each Notion task page contains a "Todoist ID" property
 - This eliminates a separate point of failure
 - Makes the mapping visually auditable in Notion
+
+**Project Mapping:**
+- Each Notion area page contains a "Todoist Project ID" property
+- Enables bidirectional sync between Todoist projects and Notion areas
+- Supports the PARA method's organizational structure
 
 ## PARA Method Integration
 
@@ -28,23 +34,38 @@ The system incorporates the PARA (Projects, Areas, Resources, Archives) method f
 - The relational structure in Notion provides richer organization than Todoist's project hierarchy
 - Tasks maintain their relationships across systems through ID mapping
 
-### Current Mapping
+### Current Mapping (Implemented)
 - Todoist Project ↔ Notion Area
 - Todoist Task ↔ Notion Task
+- Task-Area relationships via Notion relations
 
-### Future Mapping
+### Future Mapping (Phase 2)
 - Todoist Project ↔ Notion Area
 - Todoist Sub-Project ↔ Notion Project
 - Todoist Task ↔ Notion Task
+- Nested project hierarchies
 
 ## Status Mapping
 
-We use a simple status mapping between Todoist and Notion:
+### Task Status Mapping
 
-| Todoist | Notion |
-|---------|--------|
-| Incomplete | Not Started |
-| Completed | Completed |
+| Todoist Status | Notion Status |
+|----------------|---------------|
+| Incomplete (`checked: false`) | Not Started |
+| Completed (`checked: true`) | Completed |
+
+### Project Status Mapping
+
+| Todoist State | Notion Area Status | `is_archived` | `is_deleted` | Notion `Deleted` |
+|---------------|-------------------|---------------|--------------|------------------|
+| Active | Active | `false` | `false` | `false` |
+| Archived | Active | `true` | `false` | `false` |
+| Deleted | Active | any | `true` | `true` |
+
+**Rationale for Project Mapping:**
+- Archived projects remain accessible in Notion (user preference)
+- Only hard-deleted projects trigger soft deletion in Notion
+- Preserves workflow flexibility between systems
 
 ## Deletion Handling Strategy
 
@@ -92,48 +113,91 @@ When conflicts occur between systems, we follow these rules:
 
 ### Tasks Database
 
-The main Tasks database should include these properties:
+The main Tasks database includes these properties:
 
-- **Name**: Task title (string)
-- **Status**: Task status (select: Not Started, Completed)
-- **Due Date**: Task due date (date)
-- **Description**: Task details (text)
-- **Area**: Relation to Areas database
-- **Project**: Relation to Projects database
-- **Todoist ID**: ID from Todoist (string)
-- **Todoist Project ID**: ID of the Todoist project (string)
-- **Last Synced**: Timestamp of last sync (date)
-- **Deleted**: Soft delete flag (checkbox)
-- **Deleted At**: When item was deleted (date)
-- **Deleted By**: Which system deleted the item (select)
+| Property | Type | Options/Config | Purpose |
+|----------|------|----------------|---------|
+| **Name** | Title | - | Task title from Todoist `content` |
+| **Status** | Select | "Not Started", "Completed" | Task completion status |
+| **Priority** | Select | "Normal", "Low", "Medium", "High" | Maps Todoist priorities 1-4 |
+| **Due Date** | Date | Include time | Due date with timezone handling |
+| **Description** | Rich Text | - | Task description/notes |
+| **Labels** | Multi-select | Dynamic | Todoist labels as tags |
+| **Area** | Relation | → Areas database | Link to containing area/project |
+| **Todoist ID** | Rich Text | - | Unique task identifier for mapping |
+| **Todoist Project ID** | Rich Text | - | Reference to source project |
+| **Last Synced** | Date | Include time | Timestamp of last sync |
+| **Deleted** | Checkbox | - | Soft delete flag |
+| **Deleted At** | Date | Include time | When item was deleted |
+| **Deleted By** | Select | "Todoist", "Notion" | Which system deleted the item |
 
 ### Areas Database (PARA Method)
 
-The Areas database represents ongoing responsibilities and maps to top-level Todoist projects:
+The Areas database represents ongoing responsibilities and maps to Todoist projects:
 
-- **Name**: Area name
-- **Todoist Project ID**: ID of corresponding Todoist project
-- **Tasks**: Relation to Tasks database (rollup)
-- **Description**: Details about this area of responsibility
+| Property | Type | Options/Config | Purpose |
+|----------|------|----------------|---------|
+| **Name** | Title | - | Area name from Todoist project `name` |
+| **Description** | Rich Text | - | Area purpose and details |
+| **Color** | Select | Todoist colors | Visual organization aid |
+| **Todoist Project ID** | Rich Text | - | Unique project identifier for mapping |
+| **Tasks** | Relation | ← Tasks database | Rollup of related tasks |
+| **Is Archived** | Checkbox | - | Tracks Todoist archive status |
+| **Last Synced** | Date | Include time | Timestamp of last sync |
+| **Deleted** | Checkbox | - | Soft delete flag |
+| **Deleted At** | Date | Include time | When area was deleted |
+| **Deleted By** | Select | "Todoist", "Notion" | Which system deleted the area |
 
 ### Projects Database (PARA Method)
 
-The Projects database represents time-bound initiatives and may map to Todoist sub-projects in the future:
+The Projects database represents time-bound initiatives (future implementation):
 
-- **Name**: Project name
-- **Area**: Relation to the area this project belongs to
-- **Status**: Project status (Active, Completed)
-- **Todoist Project ID**: ID of corresponding Todoist project/sub-project (for future use)
-- **Tasks**: Relation to Tasks database (rollup)
-- **Start Date**: When the project started
-- **Target Completion**: Target completion date
+| Property | Type | Options/Config | Purpose |
+|----------|------|----------------|---------|
+| **Name** | Title | - | Project name |
+| **Area** | Relation | → Areas database | Parent area relationship |
+| **Status** | Select | "Active", "Completed", "On Hold" | Project lifecycle status |
+| **Tasks** | Relation | ← Tasks database | Rollup of project tasks |
+| **Start Date** | Date | - | Project initiation date |
+| **Target Completion** | Date | - | Planned completion date |
+| **Todoist Project ID** | Rich Text | - | Future: sub-project mapping |
 
-## Future Enhancements
+**Note:** This database is designed for future enhancement when Todoist sub-project support is added.
 
+## Implementation Phases
+
+### Phase 1: Core Task & Project Sync (Current)
+- ✅ Task synchronization (create, update, complete, delete)
+- ✅ Project synchronization (create, update, archive, delete)
+- ✅ Task-Area relationships via Notion relations
+- ✅ Soft deletion with audit trails
+- ✅ Priority and label mapping
+
+### Phase 2: Advanced Features (Future)
 - **Bidirectional Change Detection**: Compare timestamps to determine which system has the most recent changes
-- **Extended Properties Sync**: Sync additional properties like reminders, labels, etc.
+- **Extended Properties Sync**: Sync additional properties like reminders, task hierarchy
 - **Project-Task Hierarchy**: Support for Todoist sub-projects mapping to Notion Projects
 - **Resources & Archives Integration**: Complete the PARA method with Resources and Archives databases
 - **Filtering & Views**: Smart filtering to show only relevant tasks based on contexts
 - **Recurring Task Support**: Handle Todoist's recurring task patterns in Notion
 - **Batch Synchronization**: Periodic full sync to catch any missed webhook events
+
+## Technical Implementation Notes
+
+### Environment Variables Required
+```env
+NOTION_API_KEY=secret_xxx
+NOTION_TASK_DATABASE_ID=database_id_xxx
+NOTION_AREAS_DATABASE_ID=database_id_xxx
+TODOIST_CLIENT_SECRET=client_secret_xxx
+```
+
+### Webhook Event Handling
+- **Task Events**: `item:added`, `item:updated`, `item:completed`, `item:uncompleted`, `item:deleted`
+- **Project Events**: `project:added`, `project:updated`, `project:deleted`, `project:archived`, `project:unarchived`
+
+### Error Handling Strategy
+- Comprehensive logging for all API operations
+- Retry logic with exponential backoff
+- Graceful degradation when services unavailable
+- Data validation before API calls

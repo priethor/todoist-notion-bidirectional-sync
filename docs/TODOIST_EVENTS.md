@@ -4,13 +4,21 @@ This document describes the webhook events that Todoist sends to your applicatio
 
 ## Overview
 
-Todoist sends webhooks for the following task lifecycle events:
+Todoist sends webhooks for the following events:
 
+### Task Events
 - `item:added` - A new task was created
 - `item:updated` - An existing task was modified
 - `item:completed` - A task was marked as completed
 - `item:uncompleted` - A task was marked as incomplete (undone)
 - `item:deleted` - A task was permanently deleted
+
+### Project Events
+- `project:added` - A new project was created
+- `project:updated` - An existing project was modified
+- `project:deleted` - A project was permanently deleted
+- `project:archived` - A project was archived
+- `project:unarchived` - A project was restored from archive
 
 ## Event Structure
 
@@ -147,6 +155,96 @@ Triggered when a task is permanently deleted from Todoist.
 
 **Payload Structure:** Contains basic task information including `id` and `content`, but may have fewer fields than other events.
 
+## Project Events
+
+### 1. `project:added`
+
+Triggered when a new project is created in Todoist.
+
+**Example Payload:**
+```json
+{
+  "event_name": "project:added",
+  "user_id": 12345678,
+  "event_data": {
+    "id": "2203306141",
+    "name": "Work Project",
+    "color": "blue",
+    "parent_id": null,
+    "child_order": 1,
+    "collapsed": false,
+    "shared": false,
+    "is_deleted": false,
+    "is_archived": false,
+    "is_favorite": false,
+    "sync_id": null,
+    "inbox_project": false
+  },
+  "version": "9"
+}
+```
+
+### 2. `project:updated`
+
+Triggered when an existing project is modified (name, color, etc.).
+
+**Payload Structure:** Same as `project:added` but with updated field values.
+
+### 3. `project:deleted`
+
+Triggered when a project is permanently deleted from Todoist.
+
+**Payload Structure:** Contains basic project information including `id` and `name`.
+
+### 4. `project:archived`
+
+Triggered when a project is archived in Todoist.
+
+**Payload Structure:** Same as `project:added` but with `is_archived: true`.
+
+### 5. `project:unarchived`
+
+Triggered when an archived project is restored.
+
+**Payload Structure:** Same as `project:added` but with `is_archived: false`.
+
+## Project Data Fields
+
+### Core Project Properties
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | ✅ | Unique project identifier |
+| `name` | string | ✅ | Project name/title |
+| `color` | string | ✅ | Project color (e.g., "blue", "red") |
+| `parent_id` | string/null | ❌ | Parent project ID for hierarchy |
+| `child_order` | integer | ✅ | Order within parent or root level |
+| `collapsed` | boolean | ✅ | Whether project is collapsed in UI |
+| `shared` | boolean | ✅ | Whether project is shared with others |
+| `is_deleted` | boolean | ✅ | Deletion status |
+| `is_archived` | boolean | ✅ | Archive status |
+| `is_favorite` | boolean | ✅ | Favorite status |
+| `inbox_project` | boolean | ✅ | Whether this is the default inbox project |
+
+### Project Status States
+
+Todoist projects exist in one of three states:
+
+| Status | Description | `is_archived` | `is_deleted` |
+|--------|-------------|---------------|--------------|
+| **Active** | Currently visible and editable | `false` | `false` |
+| **Archived** | Hidden from main view but accessible | `true` | `false` |
+| **Deleted** | Permanently removed | `false` | `true` |
+
+**State Transitions:**
+- Active → Archived: `project:archived` event
+- Archived → Active: `project:unarchived` event  
+- Active/Archived → Deleted: `project:deleted` event
+
+**Special Projects:**
+- **Inbox Project**: The default project (`inbox_project: true`) cannot be deleted or archived
+- **Shared Projects**: Projects shared with other users (`shared: true`) require special handling
+
 ## Task Data Fields
 
 ### Core Task Properties
@@ -216,11 +314,19 @@ Labels are provided as an array of strings containing the label names (not IDs):
 
 ### For Notion Sync
 
+**Task Integration:**
 - Use `id` as the unique identifier to map between Todoist and Notion
 - Map `project_id` to Notion Areas in your PARA structure
 - Convert `priority` values to your Notion priority system
 - Store `labels` as a multi-select property in Notion
 - Use `due.date` and `due.timezone` for accurate due date sync
+
+**Project Integration:**
+- Use `id` as the unique identifier to map projects to Notion Areas
+- Map `name` to Area name in Notion
+- Handle `is_archived` and `is_deleted` with soft deletion in Notion
+- Store `color` and hierarchy information as metadata
+- Use `parent_id` for future sub-project/nested area support
 
 ### Event Processing
 
