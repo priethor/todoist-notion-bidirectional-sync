@@ -69,6 +69,13 @@ python3 scripts/test_webhook.py --event item:added --payload scripts/sample_payl
 
 This will send a simulated webhook to `http://localhost:5001/webhook/todoist` by default. You can specify a different URL with the `--url` parameter.
 
+## Documentation
+
+- [DESIGN.md](docs/DESIGN.md) - Architecture and design principles
+- [TODOIST_EVENTS.md](docs/TODOIST_EVENTS.md) - Webhook events and payload structure
+- [WEBHOOK_SETUP.md](WEBHOOK_SETUP.md) - Step-by-step webhook configuration
+- [TODOIST_SIGNATURE_GUIDE.md](TODOIST_SIGNATURE_GUIDE.md) - Security and signature verification
+
 ## Project Structure
 
 ```
@@ -81,7 +88,8 @@ This will send a simulated webhook to `http://localhost:5001/webhook/todoist` by
 │       ├── __init__.py      # Registers all webhook blueprints
 │       └── todoist.py       # Todoist webhook handler and routes
 ├── docs/
-│   └── DESIGN.md            # Design document with PARA method integration details
+│   ├── DESIGN.md            # Design document with PARA method integration details
+│   └── TODOIST_EVENTS.md    # Webhook events and payload documentation
 ├── scripts/
 │   ├── sample_payloads/     # Example webhook payloads
 │   └── test_webhook.py      # Script to test webhook locally
