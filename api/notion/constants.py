@@ -19,7 +19,7 @@ class TaskProperties:
 # Notion property names - Areas Database
 class AreaProperties:
     NAME = "Name"
-    TODOIST_PROJECT_ID = "Todoist Project ID"
+    TODOIST_ID = "Todoist ID"
     DESCRIPTION = "Description"
     TASKS = "Tasks"
     IS_ARCHIVED = "Is Archived"

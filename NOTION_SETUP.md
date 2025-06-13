@@ -57,7 +57,32 @@ NOTION_AREAS_DATABASE_ID=your_areas_database_id
 TODOIST_CLIENT_SECRET=from_todoist_webhook_setup
 ```
 
-## 6. Test Setup
+## 6. Validate Setup
+
+Test your configuration before running the full sync:
+
+```bash
+# Validate complete setup (Todoist + Notion)
+python3 -m api.setup_validator
+
+# Or validate just Notion
+python3 -m api.notion.validator
+
+# Or from Python
+from api.setup_validator import SetupValidator
+validator = SetupValidator()
+validator.print_validation_report()
+```
+
+This will check:
+- ✅ Todoist client secret configuration
+- ✅ Notion SDK installation
+- ✅ Environment variables
+- ✅ API key authentication  
+- ✅ Database access permissions
+- ✅ Required database properties
+
+## 7. Test Full Integration
 
 1. Start the app: `python3 app.py`
 2. Configure Todoist webhook (see WEBHOOK_SETUP.md)
