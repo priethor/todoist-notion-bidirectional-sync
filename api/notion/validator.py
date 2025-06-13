@@ -18,7 +18,10 @@ REQUIRED_TASK_PROPERTIES = {
     TaskProperties.NAME: "title",
     TaskProperties.TODOIST_ID: "rich_text", 
     TaskProperties.STATUS: "status",
-    TaskProperties.AREA: "relation"
+    TaskProperties.AREA: "relation",
+    TaskProperties.PRIORITY: "select",
+    TaskProperties.DUE_DATE: "date",
+    TaskProperties.DESCRIPTION: "rich_text"
 }
 
 REQUIRED_AREA_PROPERTIES = {
@@ -31,12 +34,13 @@ REQUIRED_AREA_PROPERTIES = {
 class NotionValidator:
     """Validates Notion API connection and database setup."""
     
-    def __init__(self):
+    def __init__(self, auto_fix: bool = False):
         """Initialize the validator."""
         self.api_key = os.getenv("NOTION_API_KEY", "").strip()
         self.task_db_id = os.getenv("NOTION_TASK_DATABASE_ID", "").strip()
         self.areas_db_id = os.getenv("NOTION_AREAS_DATABASE_ID", "").strip()
         self.client = None
+        self.auto_fix = auto_fix
         
     def validate_all(self, verbose: bool = False) -> Dict[str, Any]:
         """
@@ -112,7 +116,7 @@ class NotionValidator:
         # Check 5: Database properties
         if verbose:
             print("Validating database properties...")
-        props_check = self._check_database_properties()
+        props_check = self._check_database_properties(verbose=verbose)
         results["checks"]["database_properties"] = props_check
         if verbose:
             emoji = "✅" if props_check["success"] else "❌"
@@ -258,7 +262,7 @@ class NotionValidator:
                     "message": f"Error accessing {name} database: {error_msg}"
                 }
                 
-    def _check_database_properties(self) -> Dict[str, Any]:
+    def _check_database_properties(self, verbose: bool = False) -> Dict[str, Any]:
         """Check that databases have the required properties."""
         if not self.client:
             return {
@@ -283,6 +287,32 @@ class NotionValidator:
             "Areas", self.areas_db_id, REQUIRED_AREA_PROPERTIES
         )
         results["details"]["areas_db"] = area_props
+        
+        # Auto-fix missing properties if requested
+        if self.auto_fix and (not task_props["valid"] or not area_props["valid"]):
+            if verbose:
+                print("🔧 Auto-fixing missing properties...")
+            
+            # Fix Tasks database
+            if not task_props["valid"]:
+                if verbose:
+                    print("   📝 Adding missing properties to Tasks database...")
+                self._auto_fix_database_properties("Tasks", self.task_db_id, REQUIRED_TASK_PROPERTIES)
+                
+            # Fix Areas database  
+            if not area_props["valid"]:
+                if verbose:
+                    print("   📝 Adding missing properties to Areas database...")
+                self._auto_fix_database_properties("Areas", self.areas_db_id, REQUIRED_AREA_PROPERTIES)
+            
+            # Re-validate after fixes
+            if verbose:
+                print("   🔍 Re-validating after auto-fix...")
+            task_props = self._validate_database_properties("Tasks", self.task_db_id, REQUIRED_TASK_PROPERTIES)
+            area_props = self._validate_database_properties("Areas", self.areas_db_id, REQUIRED_AREA_PROPERTIES)
+            
+            results["details"]["tasks_db"] = task_props
+            results["details"]["areas_db"] = area_props
         
         # Overall success if both have required properties
         if not task_props["valid"] or not area_props["valid"]:
@@ -331,6 +361,89 @@ class NotionValidator:
                 "valid": False,
                 "message": f"Error checking {name} database properties: {str(e)}"
             }
+            
+    def _auto_fix_database_properties(self, name: str, db_id: str, required_props: Dict[str, str]) -> bool:
+        """Automatically create missing properties in a database."""
+        try:
+            # Get current database schema
+            database = self.client.databases.retrieve(database_id=db_id)
+            existing_props = database.get("properties", {})
+            
+            # Property configurations
+            property_configs = {
+                "Priority": {
+                    "select": {
+                        "options": [
+                            {"name": "Normal", "color": "default"},
+                            {"name": "Low", "color": "blue"}, 
+                            {"name": "Medium", "color": "orange"},
+                            {"name": "High", "color": "red"}
+                        ]
+                    }
+                },
+                "Due Date": {
+                    "date": {}
+                },
+                "Description": {
+                    "rich_text": {}
+                },
+                "Todoist ID": {
+                    "rich_text": {}
+                },
+                "Tasks": {
+                    "relation": {
+                        "database_id": self.task_db_id,
+                        "single_property": {}
+                    }
+                },
+                "Area": {
+                    "relation": {
+                        "database_id": self.areas_db_id,
+                        "single_property": {}
+                    }
+                }
+            }
+            
+            # Find missing properties
+            missing_props = []
+            for prop_name in required_props:
+                if prop_name not in existing_props:
+                    missing_props.append(prop_name)
+            
+            if not missing_props:
+                return True
+            
+            # Build properties to add (skip relations for now - they're complex)
+            properties_to_add = {}
+            skipped_relations = []
+            
+            for prop_name in missing_props:
+                if prop_name in property_configs:
+                    prop_config = property_configs[prop_name]
+                    # Skip relation properties for now
+                    if "relation" in prop_config:
+                        skipped_relations.append(prop_name)
+                        continue
+                    properties_to_add[prop_name] = prop_config
+                    logger.info(f"Adding {prop_name} property to {name} database")
+            
+            if skipped_relations:
+                print(f"   ⚠️  Skipped relation properties (create manually): {', '.join(skipped_relations)}")
+            
+            if properties_to_add:
+                # Update the database schema
+                self.client.databases.update(
+                    database_id=db_id,
+                    properties=properties_to_add
+                )
+                logger.info(f"Successfully added {len(properties_to_add)} properties to {name} database")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.exception(f"Failed to auto-fix {name} database properties: {str(e)}")
+            return False
                 
     def print_validation_report(self) -> None:
         """Print a formatted validation report with real-time progress."""

@@ -1,6 +1,7 @@
 """Complete setup validator for both Todoist and Notion integration."""
 import os
 import logging
+import argparse
 from typing import Dict, Any
 
 from .notion.validator import NotionValidator
@@ -95,10 +96,11 @@ class TodoistValidator:
 class SetupValidator:
     """Complete setup validator for Todoist-Notion integration."""
     
-    def __init__(self):
+    def __init__(self, auto_fix: bool = False):
         """Initialize the complete validator."""
-        self.notion_validator = NotionValidator()
+        self.notion_validator = NotionValidator(auto_fix=auto_fix)
         self.todoist_validator = TodoistValidator()
+        self.auto_fix = auto_fix
         
     def validate_all(self, verbose: bool = False) -> Dict[str, Any]:
         """
@@ -184,6 +186,12 @@ def validate_todoist_setup() -> bool:
 
 
 if __name__ == "__main__":
-    # Run complete validation when script is executed directly
-    validator = SetupValidator()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Validate Todoist-Notion integration setup')
+    parser.add_argument('--auto-fix', action='store_true', 
+                       help='Automatically create missing database properties')
+    args = parser.parse_args()
+    
+    # Run complete validation with auto-fix option
+    validator = SetupValidator(auto_fix=args.auto_fix)
     validator.print_validation_report()

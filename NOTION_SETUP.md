@@ -24,14 +24,14 @@ Set up your Notion workspace to sync with Todoist.
 ### Tasks Database  
 **Required properties:**
 - **Name** (Title) - task content from Todoist
-- **Todoist ID** (Text) - for mapping tasks
-- **Status** (Select: "Not Started", "Completed") - completion status
+- **Todoist ID** (Rich text) - for mapping tasks
+- **Status** (Status) - completion status  
 - **Area** (Relation → Areas database) - project relationship
+- **Priority** (Select: "Normal", "Low", "Medium", "High") - priority level
+- **Due Date** (Date) - task due date
+- **Description** (Rich text) - task notes
 
 **Optional properties:**
-- **Due Date** (Date) - task due date
-- **Priority** (Select: "Normal", "Low", "Medium", "High") - priority level
-- **Description** (Text) - task notes
 - **Labels** (Multi-select) - Todoist labels as tags
 - **Deleted** (Checkbox) - for soft deletion
 
